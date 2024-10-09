@@ -14,7 +14,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.jetpackcomposeexample.ui.theme.JetpackComposeExampleTheme
+import com.example.jetpackcomposeexample.viewmodel.LoginViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,11 +35,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
+fun LoginScreen(modifier: Modifier = Modifier,
+                loginViewModel: LoginViewModel = viewModel()
+) {
+    val email by loginViewModel.email.collectAsState()
+    val password by loginViewModel.password.collectAsState()
+    val showPassword by loginViewModel.showPassword.collectAsState()
 
+    var snackbarVisible by remember { mutableStateOf(false) }
+    var snackbarMessage by remember { mutableStateOf("") }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -52,7 +58,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
 
         TextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { loginViewModel.onEmailChanged(it) },
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
@@ -62,7 +68,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
 
         TextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { loginViewModel.onPasswordChanged(it) },
             label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -70,7 +76,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
         )
 
         Button(
-            onClick = { showPassword = !showPassword },
+            onClick = { loginViewModel.onTogglePasswordVisibility() },
             modifier = Modifier.padding(top = 8.dp)
         ) {
             Text(if (showPassword) "Hide Password" else "Show Password")
@@ -79,10 +85,32 @@ fun LoginScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = {  },
+            onClick = {
+                loginViewModel.login(
+                    onLoginSuccess = {
+                        snackbarMessage = "Login successful!"
+                        snackbarVisible = true
+                    },
+                    onLoginError = {
+                        snackbarMessage = "Invalid email or password."
+                        snackbarVisible = true
+                    }
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Login")
+        }
+        if (snackbarVisible) {
+            Snackbar(
+                action = {
+                    Button(onClick = { snackbarVisible = false }) {
+                        Text("Dismiss")
+                    }
+                }
+            ) {
+                Text(snackbarMessage)
+            }
         }
     }
 }
