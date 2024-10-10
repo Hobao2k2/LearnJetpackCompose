@@ -15,8 +15,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.jetpackcomposeexample.model.User
+import com.example.jetpackcomposeexample.repository.UserRepository
 import com.example.jetpackcomposeexample.ui.theme.JetpackComposeExampleTheme
 import com.example.jetpackcomposeexample.viewmodel.LoginViewModel
+import com.example.jetpackcomposeexample.viewmodel.UserViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,9 +27,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             JetpackComposeExampleTheme {
+                    val userRepository = UserRepository()
+                    val viewModelFactory = UserViewModelFactory(userRepository)
+                    val loginViewModel: LoginViewModel = viewModel(factory = viewModelFactory)
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     LoginScreen(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        loginViewModel = loginViewModel
                     )
                 }
             }
@@ -35,15 +42,18 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier,
-                loginViewModel: LoginViewModel = viewModel()
+fun LoginScreen(
+    modifier: Modifier = Modifier,
+    loginViewModel: LoginViewModel = viewModel()
 ) {
     val email by loginViewModel.email.collectAsState()
     val password by loginViewModel.password.collectAsState()
     val showPassword by loginViewModel.showPassword.collectAsState()
+    val loginResult by loginViewModel.loginResult.collectAsState()
 
     var snackbarVisible by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf("") }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -86,21 +96,20 @@ fun LoginScreen(modifier: Modifier = Modifier,
 
         Button(
             onClick = {
-                loginViewModel.login(
-                    onLoginSuccess = {
+                loginViewModel.login(User(email, password)).invokeOnCompletion {
+                    if (loginResult != null && loginResult?.success == true) {
                         snackbarMessage = "Login successful!"
-                        snackbarVisible = true
-                    },
-                    onLoginError = {
+                    } else {
                         snackbarMessage = "Invalid email or password."
-                        snackbarVisible = true
                     }
-                )
+                    snackbarVisible = true
+                }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Login")
         }
+
         if (snackbarVisible) {
             Snackbar(
                 action = {

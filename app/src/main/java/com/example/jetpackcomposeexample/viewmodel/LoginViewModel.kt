@@ -1,12 +1,17 @@
 package com.example.jetpackcomposeexample.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.jetpackcomposeexample.model.LoginResponse
+import com.example.jetpackcomposeexample.model.User
+import com.example.jetpackcomposeexample.repository.UserRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(private val userRepository: UserRepository) : ViewModel() {
     private val _email = MutableStateFlow("")
     val email = _email.asStateFlow()
 
@@ -18,6 +23,10 @@ class LoginViewModel : ViewModel() {
 
     private val correctEmail = "hobao@gmail.com"
     private val correctPassword = "bao1208"
+
+    private val _loginResult = MutableStateFlow<LoginResponse?>(null)
+    val loginResult = _loginResult.asStateFlow()
+
 
     fun onEmailChanged(newEmail: String) {
         _email.value = newEmail
@@ -31,13 +40,13 @@ class LoginViewModel : ViewModel() {
         _showPassword.value = !_showPassword.value
     }
 
-    fun login(onLoginSuccess: () -> Unit, onLoginError: () -> Unit) {
-        viewModelScope.launch {
-            if (_email.value == correctEmail && _password.value == correctPassword) {
-                onLoginSuccess()
-            } else {
-                onLoginError()
-            }
+    fun login(user: User): Job {
+        return viewModelScope.launch {
+            Log.i("test","bat dau lay du lieu tu repository")
+            val loginUser=userRepository.loginUser(user)
+            Log.i("test","dang chuan bị cap nhat dư lieu vao _loginResult")
+            _loginResult.value=loginUser
+            Log.i("test","da cap nhat dư lieu vao _loginResult")
         }
     }
 }
